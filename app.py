@@ -1,9 +1,15 @@
 import os
+import jsonpickle
 import numpy as np
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, make_response, request, jsonify, render_template
+from sklearn.metrics import roc_auc_score
 from tensorflow import keras
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+
+UPLOAD_FOLDER = 'static/uploads/'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 dir = os.path.dirname(__file__)
 data_path = os.path.join(dir, 'saved_models','my_model')
@@ -29,14 +35,16 @@ def predict():
 
 @app.route('/predict_api',methods=['POST'])
 def predict_api():
-    '''
-    For direct API calls trought request
-    '''
-    data = request.get_json(force=True)
-    prediction = model.predict([np.array(list(data.values()))])
+    signal = request.files['signal']
+    filename = secure_filename(signal.filename)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    signal.save(path)
+    x = np.genfromtxt(path, delimiter=',')
 
-    output = prediction[0]
-    return jsonify(output)
+    y = model.predict(x)
+
+    resp = make_response(jsonpickle.encode((x, y), unpicklable=False), 200)
+    return resp
 
 if __name__ == "__main__":
     app.run(debug=True)
