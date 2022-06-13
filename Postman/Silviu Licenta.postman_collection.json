@@ -22,8 +22,7 @@
 						{
 							"key": "annotation",
 							"type": "file",
-							"src": [],
-							"disabled": true
+							"src": []
 						}
 					]
 				},
