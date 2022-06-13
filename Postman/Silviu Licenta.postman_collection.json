@@ -1,0 +1,67 @@
+{
+	"info": {
+		"_postman_id": "58388673-5867-4383-93eb-f667057668a3",
+		"name": "Silviu Licenta",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "17326469"
+	},
+	"item": [
+		{
+			"name": "Predict",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "signal",
+							"type": "file",
+							"src": []
+						},
+						{
+							"key": "annotation",
+							"type": "file",
+							"src": [],
+							"disabled": true
+						}
+					]
+				},
+				"url": {
+					"raw": "{{localhost}}predict_api",
+					"host": [
+						"{{localhost}}predict_api"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "localhost",
+			"value": "http://127.0.0.1:5000/",
+			"type": "string"
+		}
+	]
+}

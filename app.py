@@ -39,11 +39,10 @@ def predict_api():
     filename = secure_filename(signal.filename)
     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     signal.save(path)
-    x = np.genfromtxt(path, delimiter=',')
 
-    y = model.predict(x)
 
-    resp = make_response(jsonpickle.encode((x, y), unpicklable=False), 200)
+    # resp = make_response(jsonpickle.encode((x, y), unpicklable=False), 200)
+    resp = make_response("test", 200)
     return resp
 
 if __name__ == "__main__":
