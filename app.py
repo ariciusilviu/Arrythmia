@@ -1,9 +1,13 @@
+import os
 import numpy as np
 from flask import Flask, request, jsonify, render_template
 from tensorflow import keras
 
 app = Flask(__name__)
-model = keras.models.load_model('saved_models/my_model')
+
+dir = os.path.dirname(__file__)
+data_path = os.path.join(dir, 'saved_models','my_model')
+model = keras.models.load_model(data_path)
 
 @app.route('/')
 def home():
