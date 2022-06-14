@@ -53,8 +53,9 @@ function App() {
   const handleDragOut = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
     dragCounter--;
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+    if (dragCounter === 0) {
       setDragging(false);
     }
   };

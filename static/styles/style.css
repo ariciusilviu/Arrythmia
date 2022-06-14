@@ -70,6 +70,7 @@ main {
   flex-direction: column;
   gap: 0.5rem;
   text-align: center;
+  pointer-events: none;
 }
 
 .drag-and-drop.dragging {
