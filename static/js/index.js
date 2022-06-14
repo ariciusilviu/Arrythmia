@@ -1,4 +1,13 @@
 function App() {
+  // state-ul aplicatiei
+  // ********************
+  // loading - cand se incarca aplicatia  (in timpul requestului)
+  // draggind - detecteaza drag and drop-ul pentru colorare
+  // showChart - setam display none pe chart inainte de prima interactiune
+  // files - fisierele incarcate
+  // chart - obiectul in care stocam chart-ul CanvasJS (librarie de grafice pt JavaScript)
+  // confidence - confidence thresholdul
+  // resultText - unde afisam textul dupa rezultat (daca are sau nu aritmie pacientul)
   const [loading, setLoading] = React.useState(false);
   const [dragging, setDragging] = React.useState(false);
   const [showChart, setShowChart] = React.useState(false);
@@ -6,8 +15,6 @@ function App() {
   const [files, setFiles] = React.useState([]);
 
   const [errors, setErrors] = React.useState([]);
-
-  const [result, setResult] = React.useState(null);
 
   const [chart, setChart] = React.useState(null);
 
@@ -17,6 +24,7 @@ function App() {
 
   let dragCounter = 0;
 
+  // folosim asta pentru spinnerul animat de loading
   const [asciiSpinner, setAsciiSpinner] = React.useState("/");
   const spinnerStates = [
     "/",
@@ -34,10 +42,12 @@ function App() {
   ];
   const [spinnerIndex, setSpinnerIndex] = React.useState(0);
 
+  // apelam functia cand se interactioneaza cu inputul de confidence sa setam confidence la valoarea inputului (e.target = input)
   const handleInput = (e) => {
     setConfidence(e.target.value);
   };
 
+  // urmatoarele 3 functii seteaza in state date legate de drag and drop
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -62,77 +72,110 @@ function App() {
     }
   };
 
+  // cand se face drop
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragging(false);
+    // nu facem nimic daca nu exista fisierele (o siguranta)
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      // preluam din event fisierele
       let _files = Array.from(e.dataTransfer.items);
       _files = _files.map((_) => _.getAsFile());
+
+      // curatam
       e.dataTransfer.clearData();
       dragCounter = 0;
 
+      // apelam metoda care face request folosind fisierele preluate
       postFiles(_files);
     }
   };
 
   const postFiles = (_files) => {
+    // stocam in data fisierele primite
     let data = {};
     let missingFileErrors = [];
+    // vom cauta ca cele 3 fisiere sunt prezente
     const fileExtensions = ["dat", "atr", "hea"];
     fileExtensions.forEach((e) => {
+      // atribuim in data la proprietatea cu numele extensiei fisierul daca exista
       data[e] = _files.find(
         (_) => _.name.split(".")[_.name.split(".").length - 1] == e
       );
+      // daca data[extensie] nu exista, generam o eroare
       if (data[e] === undefined) {
         missingFileErrors.push({ message: `.${e} file is missing` });
       }
     });
+    // daca exista erori, le setam (pentru a fi afisate)
     if (missingFileErrors.length > 0) {
       setErrors(missingFileErrors);
+      // incheiem procesul
       return;
     }
 
+    // totul a fost ok, golim erorile si setam fisierele (ca sa le afisam numele in interfata)
     setErrors([]);
     setFiles(_files);
+
+    // generam payload-ul ca tip FormData
     let payload = new FormData();
+
+    // atribuim fisierele la proprietatile corespunzatoare
     payload.append("signal", data.dat);
     payload.append("annotation", data.atr);
     payload.append("hea", data.hea);
 
     setLoading(true);
+
+    // facem request
     fetch("/predict_api", {
       body: payload,
       method: "post",
     })
       .then((response) =>
+        // transformam raspunsul in json
         response
           .json()
           .then((data) => ({ status: response.status, body: data }))
       )
       .then((data) => {
         if (data.status === 200) {
+          // atribuim datele din raspuns in variabila responseResult
           let responseResult = data.body;
+          // preluam din rezultat doar primele 10 batai ale inimii
           responseResult.input = responseResult.input.slice(0, 10);
           responseResult.prediction = responseResult.prediction.slice(0, 10);
-          let reducedInput = [];
+
+          // mai pastram aici niste variabile intermediare
           let secondsPassed = 0;
+          // in chartData vom pastra lista de puncte din grafic
           let chartData = [];
           let hasArrhythmia = false;
+          // iteram bataile inimii
           for (let i = 0; i < responseResult.input.length; i++) {
             let element = responseResult.input[i];
             let colorItRed = false;
-            // let average = element.reduce((a, b) => a + b) / element.length;
-            // reducedInput.push(average);
+
+            // gasim punctul maxim al intervalului ca sa punem acolo labelul de normal/abnormal
             const max = Math.max(...element);
 
             const indexOfMax = element.indexOf(max);
+            // iteram toate bucatelele de semnal dintr-un interval de bataie (216 bucati)
             for (let index = 0; index < element.length; index++) {
               const t = element[index];
+
+              // adaugam la datele pt plot: y => valoarea semnalului, x=> axa timpului (numaram din 0.3 secunde)
               let plotData = { y: t, x: secondsPassed };
+
+              // daca punctul e maximul, adaugam label
               if (index === indexOfMax) {
                 plotData.indexLabel = "Normal";
               }
+
+              // daca e mai mare ca confidence, a fost detectata aritmie
+              // adaugam un label ca anormal, setam hasArrhythmia ca true (pentru mesaj)
               if (
                 responseResult.prediction[i][0] > confidence &&
                 index === indexOfMax
@@ -149,6 +192,7 @@ function App() {
               secondsPassed += 0.3;
             }
 
+            // daca a fost detectata aritmie in interval, coloram tot intervalul in rosu
             if (colorItRed) {
               for (let ii = i * 216; ii < (i + 1) * 216; ii++) {
                 let pointData = chartData[ii];
@@ -157,18 +201,23 @@ function App() {
               }
             }
           }
+
+          // in functie de hasArrhythmia afisam un mesaj
           hasArrhythmia
             ? setResultText("Arrhythmia was detected on patient.")
             : setResultText("No arrhythmia was detected.");
-          responseResult.input = reducedInput;
+
+          // la final, setam chartData in chart si apelam functia lui de render
           chart.options.data[0].dataPoints = chartData;
           chart.render();
           setShowChart(true);
         }
       })
+      // oprim loadingul
       .finally(() => setLoading(false));
   };
 
+  // aici ne ocupam de animatia loading
   React.useEffect(() => {
     if (loading) {
       const intervalID = setTimeout(() => {
@@ -180,6 +229,7 @@ function App() {
     }
   });
 
+  // initializam aici obiectul chart din state
   React.useEffect(() => {
     var _chart = new CanvasJS.Chart("chartContainer", {
       animationEnabled: true,
@@ -211,6 +261,8 @@ function App() {
       ],
     });
     setChart(_chart);
+    // cand useEffect este apelat cu al doilea argument ca un array gol [], functia noastra se va apela o singura data, la incarcarea paginii
+    // de aceea initializam aici chart
   }, []);
 
   return (
@@ -228,6 +280,9 @@ function App() {
         >
           <div className="drag-and-drop__content">
             <h4>Drag and drop the three files (.atr, .dat and .hea) here</h4>
+            {
+              // asa arata un for in react }
+            }
             {files.length > 0 && files.map((_) => <div>{_.name}</div>)}
           </div>
         </div>
@@ -251,11 +306,17 @@ function App() {
             ))}
           </div>
         )}
+        {
+          // daca loading atunci arata asta
+        }
         {loading && (
           <div className="loading">
             Loading... <span>{asciiSpinner}</span>
           </div>
         )}
+        {
+          // chartul initializat va cauta elementul cu id-ul chartContainer sa afiseze acolo plotul
+        }
         <div
           id="chartContainer"
           style={{
@@ -283,7 +344,7 @@ function App() {
   );
 }
 
-// instantiem aplicatia React
+// in final, cream aplicatia react si o randam
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
