@@ -1,4 +1,4 @@
-from constant import ABNORMAL, FS, NUM_SEC, UPLOAD_FOLDER
+from constant import ABNORMAL, DATA_PATH, FS, NUM_SEC, UPLOAD_FOLDER
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from tensorflow import keras
@@ -6,12 +6,15 @@ import numpy as np
 import pandas as pd
 import wfdb
 
+trained_patients = ['100', '101', '102', '103', '104', '106', '107', '108', '109', '112', '113', '114', '115', '116', '117', '118', '119', '121', '122', '123', '124', '200', '201', '202', '203', '205', '207', '209', '210', '212', '213', '214', '215', '217', '219', '220', '221', '222', '223', '228', '230', '231', '232', '233', '234']
+
 def predict_signal(patient):
     patients = []
     patients.append(patient)
+    x_train, y_train, sym_train = make_dataset(trained_patients, NUM_SEC, FS, ABNORMAL)
     x_sub, y_sub, sym_sub = make_dataset(patients, NUM_SEC, FS, ABNORMAL)
     model = Sequential()
-    model.add(Dense(32, activation = 'relu', input_dim = x_sub.shape[1]))
+    model.add(Dense(32, activation = 'relu', input_dim = x_train.shape[1]))
     model.add(Dropout(rate = 0.25))
     model.add(Dense(1, activation = 'sigmoid'))
 
@@ -34,8 +37,13 @@ def make_dataset(pts, num_sec, fs, abnormal):
     # list to keep track of number of beats across patients
     max_rows = []
 
+    path = DATA_PATH
+    
+    if (len(pts) == 1):
+        path = UPLOAD_FOLDER
+
     for pt in pts:
-        file = UPLOAD_FOLDER + pt
+        file = path + pt
 
         p_signal, atr_sym, atr_sample = load_ecg(file)
 

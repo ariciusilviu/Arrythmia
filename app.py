@@ -35,7 +35,7 @@ def predict_api():
     hea_path = save_form_file(request, 'hea')
     x_sub, y_sub_preds_dense = predict_signal(patient_no)
 
-    resp = make_response(jsonpickle.encode(({'input' : x_sub.tolist()}, {'prediction' : y_sub_preds_dense.tolist()}), unpicklable=False), 200)
+    resp = make_response(jsonpickle.encode(({'input' : x_sub.tolist(), 'prediction' : y_sub_preds_dense.tolist()}), unpicklable=False), 200)
 
     # cleanup
     os.remove(signal_path)

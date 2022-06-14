@@ -1,9 +1,125 @@
 function App() {
   const [loading, setLoading] = React.useState(false);
+  const [dragging, setDragging] = React.useState(false);
+  const [showChart, setShowChart] = React.useState(false);
+
+  const [files, setFiles] = React.useState([]);
+
+  const [errors, setErrors] = React.useState([]);
+
+  const [result, setResult] = React.useState(null);
+
+  const [chart, setChart] = React.useState(null);
+
+  let dragCounter = 0;
 
   const [asciiSpinner, setAsciiSpinner] = React.useState("/");
   const spinnerStates = ["/", "-", "\\", "|"];
   const [spinnerIndex, setSpinnerIndex] = React.useState(0);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragIn = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setDragging(true);
+    }
+  };
+
+  const handleDragOut = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter--;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setDragging(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      let _files = Array.from(e.dataTransfer.items);
+      _files = _files.map((_) => _.getAsFile());
+      console.log(_files);
+      e.dataTransfer.clearData();
+      dragCounter = 0;
+      setFiles(_files);
+      postFiles(_files);
+    }
+  };
+
+  const postFiles = (files) => {
+    let data = {};
+    let missingFileErrors = [];
+    const fileExtensions = ["dat", "atr", "hea"];
+    fileExtensions.forEach((e) => {
+      data[e] = files.find(
+        (_) => _.name.split(".")[_.name.split(".").length - 1] == e
+      );
+      if (data[e] === undefined) {
+        missingFileErrors.push({ message: `.${e} file is missing` });
+      }
+    });
+    if (missingFileErrors.length > 0) {
+      setErrors(missingFileErrors);
+      return;
+    }
+
+    setErrors([]);
+    let payload = new FormData();
+    payload.append("signal", data.dat);
+    payload.append("annotation", data.atr);
+    payload.append("hea", data.hea);
+
+    setLoading(true);
+    fetch("/predict_api", {
+      body: payload,
+      method: "post",
+    })
+      .then((response) =>
+        response
+          .json()
+          .then((data) => ({ status: response.status, body: data }))
+      )
+      .then((data) => {
+        if (data.status === 200) {
+          let responseResult = data.body;
+          let reducedInput = [];
+          let secondsPassed = 0;
+          let chartData = [];
+          for (let i = 0; i < responseResult.input.length; i++) {
+            const element = responseResult.input[i];
+            let average = element.reduce((a, b) => a + b) / element.length;
+            reducedInput.push(average);
+            let plotData = { y: average, x: secondsPassed };
+            if (responseResult.prediction[i][0] > 0.1) {
+              plotData.indexLabel = "Abnormal";
+              plotData.markerColor = "red";
+              plotData.markerType = "circle";
+            }
+            chartData.push(plotData);
+            secondsPassed += 0.3;
+          }
+          responseResult.input = reducedInput;
+          console.dir(responseResult);
+
+          console.log(chart);
+          chart.options.data[0].dataPoints = chartData;
+          chart.render();
+          setShowChart(true);
+        }
+      })
+      .finally(() => setLoading(false));
+
+    console.log(data);
+  };
 
   React.useEffect(() => {
     if (loading) {
@@ -16,72 +132,89 @@ function App() {
     }
   });
 
+  React.useEffect(() => {
+    var _chart = new CanvasJS.Chart("chartContainer", {
+      animationEnabled: true,
+      theme: "light2",
+      height: 550, //in pixels
+      width: 1250,
+      title: {
+        text: "Simple Line Chart",
+      },
+      data: [
+        {
+          type: "line",
+          indexLabelFontSize: 16,
+          dataPoints: [
+            { y: 450 },
+            { y: 414 },
+            {
+              y: 520,
+              indexLabel: "\u2191 highest",
+              markerColor: "red",
+              markerType: "triangle",
+            },
+            { y: 460 },
+            { y: 450 },
+            { y: 500 },
+            { y: 480 },
+            { y: 480 },
+            {
+              y: 410,
+              indexLabel: "\u2193 lowest",
+              markerColor: "DarkSlateGrey",
+              markerType: "cross",
+            },
+            { y: 500 },
+            { y: 480 },
+            { y: 510 },
+          ],
+        },
+      ],
+    });
+    setChart(_chart);
+  }, []);
+
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Gender and age detection app</h1>
+        <h1>Arrhythmia Detection App</h1>
       </header>
       <main>
-        <form onSubmit={handleSubmit}>
-          <h3>Upload a file and submit it to get started</h3>
-          <input type="file" accept="image/jpeg" onChange={handleChange} />
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              justifyContent: "space-between",
-              maxWidth: "300px",
-            }}
-          >
-            <label for="confidence">Confidence threshold</label>
-            <input
-              type="range"
-              name="confidence"
-              min="0.15"
-              max="0.99"
-              onChange={handleInput}
-              step="0.01"
-              defaultValue="0.7"
-            />
+        <div
+          className={dragging ? "drag-and-drop  dragging" : "drag-and-drop "}
+          onDragEnter={handleDragIn}
+          onDragLeave={handleDragOut}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <div className="drag-and-drop__content">
+            <h4>Drag and drop the three files (.atr, .dat and .hea) here</h4>
+            {files.length > 0 && files.map((_) => <div>{_.name}</div>)}
           </div>
-          <div>
-            Confidence is : <span className="turq">{confidence}</span>
-          </div>
-          <div>
-            <input type="submit" value="Submit image" disabled={!file} />
-          </div>
-        </form>
-        {!loading ? (
-          !errorMessage ? (
-            file &&
-            results != null && (
-              <div className="results">
-                <div className="results__imgs">
-                  <img src={fileToBase64} />
-                  <img src={resultBase64} />
-                </div>
-                <h3 style={{ textAlign: "center" }}>Results:</h3>
-                <div className="results__data">
-                  {results != null &&
-                    results.map((_, index) => (
-                      <div key={index}>
-                        {_.gender === "Male" ? "👨" : "👩"} Gender:{" "}
-                        <span className="turq">{_.gender}</span> Age:{" "}
-                        <span className="turq">{_.age}</span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )
-          ) : (
-            <div className="error">{errorMessage}</div>
-          )
-        ) : (
-          <div>
-            Loading... <span className="turq">{asciiSpinner}</span>
+        </div>
+        {errors.length > 0 && (
+          <div className="errors">
+            {errors.map((e) => (
+              <div>{e.message}</div>
+            ))}
           </div>
         )}
-        {}
+        {loading && (
+          <div className="loading">
+            Loading... <span>{asciiSpinner}</span>
+          </div>
+        )}
+        <div
+          id="chartContainer"
+          style={{
+            display: showChart ? "flex" : "none",
+            height: 550,
+            width: "100%",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        ></div>
       </main>
     </div>
   );
