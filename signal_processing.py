@@ -1,4 +1,4 @@
-from constant import ABNORMAL, DATA_PATH, FS, NUM_SEC
+from constant import ABNORMAL, FS, NUM_SEC, UPLOAD_FOLDER
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from tensorflow import keras
@@ -35,7 +35,7 @@ def make_dataset(pts, num_sec, fs, abnormal):
     max_rows = []
 
     for pt in pts:
-        file = DATA_PATH + pt
+        file = UPLOAD_FOLDER + pt
 
         p_signal, atr_sym, atr_sample = load_ecg(file)
 
