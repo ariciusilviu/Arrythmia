@@ -53,8 +53,7 @@ main {
 
 .drag-and-drop {
   border: 1px dashed var(--red);
-  background: var(--gray);
-  color: white;
+  color: var(--gray);
   position: relative;
   height: 200px;
   border-radius: 10px;
@@ -70,14 +69,26 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  text-align: center;
 }
 
 .drag-and-drop.dragging {
-  background: var(--accent);
+  border: 1px dashed var(--accent);
+  color: var(--accent);
 }
 
 .loading {
-  font-size: large;
+  font-size: larger;
   font-weight: bold;
   color: var(--accent);
+}
+
+h1 {
+  text-align: center;
+}
+
+.errors div {
+  color: var(--red);
+  font-weight: bold;
+  text-align: center;
 }

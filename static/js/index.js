@@ -11,11 +11,30 @@ function App() {
 
   const [chart, setChart] = React.useState(null);
 
+  const [confidence, setConfidence] = React.useState(0.2);
+
   let dragCounter = 0;
 
   const [asciiSpinner, setAsciiSpinner] = React.useState("/");
-  const spinnerStates = ["/", "-", "\\", "|"];
+  const spinnerStates = [
+    "/",
+    "-",
+    "\\",
+    "|",
+    "|",
+    "|",
+    "\\",
+    "-",
+    "/",
+    "|",
+    "|",
+    "|",
+  ];
   const [spinnerIndex, setSpinnerIndex] = React.useState(0);
+
+  const handleInput = (e) => {
+    setConfidence(e.target.value);
+  };
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -47,20 +66,19 @@ function App() {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       let _files = Array.from(e.dataTransfer.items);
       _files = _files.map((_) => _.getAsFile());
-      console.log(_files);
       e.dataTransfer.clearData();
       dragCounter = 0;
-      setFiles(_files);
+
       postFiles(_files);
     }
   };
 
-  const postFiles = (files) => {
+  const postFiles = (_files) => {
     let data = {};
     let missingFileErrors = [];
     const fileExtensions = ["dat", "atr", "hea"];
     fileExtensions.forEach((e) => {
-      data[e] = files.find(
+      data[e] = _files.find(
         (_) => _.name.split(".")[_.name.split(".").length - 1] == e
       );
       if (data[e] === undefined) {
@@ -73,6 +91,7 @@ function App() {
     }
 
     setErrors([]);
+    setFiles(_files);
     let payload = new FormData();
     payload.append("signal", data.dat);
     payload.append("annotation", data.atr);
@@ -91,6 +110,8 @@ function App() {
       .then((data) => {
         if (data.status === 200) {
           let responseResult = data.body;
+          responseResult.input = responseResult.input.slice(0, 200);
+          responseResult.prediction = responseResult.prediction.slice(0, 200);
           let reducedInput = [];
           let secondsPassed = 0;
           let chartData = [];
@@ -99,7 +120,7 @@ function App() {
             let average = element.reduce((a, b) => a + b) / element.length;
             reducedInput.push(average);
             let plotData = { y: average, x: secondsPassed };
-            if (responseResult.prediction[i][0] > 0.1) {
+            if (responseResult.prediction[i][0] > confidence) {
               plotData.indexLabel = "Abnormal";
               plotData.markerColor = "red";
               plotData.markerType = "circle";
@@ -108,23 +129,18 @@ function App() {
             secondsPassed += 0.3;
           }
           responseResult.input = reducedInput;
-          console.dir(responseResult);
-
-          console.log(chart);
           chart.options.data[0].dataPoints = chartData;
           chart.render();
           setShowChart(true);
         }
       })
       .finally(() => setLoading(false));
-
-    console.log(data);
   };
 
   React.useEffect(() => {
     if (loading) {
       const intervalID = setTimeout(() => {
-        setAsciiSpinner(spinnerStates[spinnerIndex % 4]);
+        setAsciiSpinner(spinnerStates[spinnerIndex % 12]);
         setSpinnerIndex(spinnerIndex + 1);
       }, 100);
 
@@ -139,7 +155,7 @@ function App() {
       height: 550, //in pixels
       width: 1250,
       title: {
-        text: "Simple Line Chart",
+        text: "Results",
       },
       data: [
         {
@@ -193,6 +209,19 @@ function App() {
             {files.length > 0 && files.map((_) => <div>{_.name}</div>)}
           </div>
         </div>
+        <div>
+          <label for="confidence">Confidence threshold: {confidence}</label>
+          <input
+            type="range"
+            name="confidence"
+            min="0.01"
+            max="1"
+            onChange={handleInput}
+            step="0.01"
+            defaultValue="0.2"
+          />
+        </div>
+
         {errors.length > 0 && (
           <div className="errors">
             {errors.map((e) => (
@@ -208,11 +237,9 @@ function App() {
         <div
           id="chartContainer"
           style={{
-            display: showChart ? "flex" : "none",
+            display: showChart ? "block" : "none",
             height: 550,
-            width: "100%",
-            flexDirection: "column",
-            alignItems: "center",
+            width: 1250,
           }}
         ></div>
       </main>
