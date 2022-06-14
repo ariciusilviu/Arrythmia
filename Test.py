@@ -173,3 +173,5 @@ for n_pt in n_pts:
     y_sub_preds_dense = model.predict(x_sub, verbose=0)
     auc = roc_auc_score(y_sub, y_sub_preds_dense)
     print(auc)
+    pickle.dump(y_sub_preds_dense, open('pred.pkl','wb'))
+    pickle.dump(x_sub, open('semnal.pkl', 'wb'))
