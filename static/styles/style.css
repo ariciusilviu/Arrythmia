@@ -23,9 +23,9 @@ body {
 }
 
 .App {
-  height: calc(100% - 200px);
   margin: 100px auto;
   max-width: 1600px;
+  height: fit-content;
   width: 100%;
 
   border: solid 1px gray;

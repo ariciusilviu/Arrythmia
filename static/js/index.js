@@ -126,7 +126,10 @@ function App() {
             const indexOfMax = element.indexOf(max);
             for (let index = 0; index < element.length; index++) {
               const t = element[index];
-              let plotData = { y: t, x: secondsPassed, lineColor: "red" };
+              let plotData = { y: t, x: secondsPassed };
+              if (index === indexOfMax) {
+                plotData.indexLabel = "Normal";
+              }
               if (
                 responseResult.prediction[i][0] > confidence &&
                 index === indexOfMax
@@ -183,7 +186,9 @@ function App() {
           type: "line",
           markerColor: "white",
           markerBorderColor: "blue",
+          lineColor: "blue",
           indexLabelFontSize: 16,
+          fontFamily: "Montserrat",
           dataPoints: [
             { x: 10, y: 17 },
             { x: 20, y: 15 },
