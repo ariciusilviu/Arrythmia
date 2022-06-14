@@ -116,7 +116,8 @@ function App() {
           let secondsPassed = 0;
           let chartData = [];
           for (let i = 0; i < responseResult.input.length; i++) {
-            const element = responseResult.input[i];
+            let element = responseResult.input[i];
+            let colorItRed = false;
             // let average = element.reduce((a, b) => a + b) / element.length;
             // reducedInput.push(average);
             const max = Math.max(...element);
@@ -124,7 +125,7 @@ function App() {
             const indexOfMax = element.indexOf(max);
             for (let index = 0; index < element.length; index++) {
               const t = element[index];
-              let plotData = { y: t, x: secondsPassed };
+              let plotData = { y: t, x: secondsPassed, lineColor: "red" };
               if (
                 responseResult.prediction[i][0] > confidence &&
                 index === indexOfMax
@@ -132,9 +133,20 @@ function App() {
                 plotData.indexLabel = "Abnormal";
                 plotData.markerColor = "red";
                 plotData.markerType = "circle";
+                plotData.lineColor = "red";
+                plotData.color = "red";
+                colorItRed = true;
               }
               chartData.push(plotData);
               secondsPassed += 0.3;
+            }
+
+            if (colorItRed) {
+              for (let ii = i * 216; ii < (i + 1) * 216; ii++) {
+                let pointData = chartData[ii];
+                pointData.markerBorderColor = "red";
+                pointData.lineColor = "red";
+              }
             }
           }
           responseResult.input = reducedInput;
@@ -160,39 +172,27 @@ function App() {
   React.useEffect(() => {
     var _chart = new CanvasJS.Chart("chartContainer", {
       animationEnabled: true,
-      theme: "light2",
       height: 550, //in pixels
-      width: 1250,
+      width: 1500,
       title: {
         text: "Results",
       },
       data: [
         {
           type: "line",
+          markerColor: "white",
+          markerBorderColor: "blue",
           indexLabelFontSize: 16,
           dataPoints: [
-            { y: 450 },
-            { y: 414 },
-            {
-              y: 520,
-              indexLabel: "\u2191 highest",
-              markerColor: "red",
-              markerType: "triangle",
-            },
-            { y: 460 },
-            { y: 450 },
-            { y: 500 },
-            { y: 480 },
-            { y: 480 },
-            {
-              y: 410,
-              indexLabel: "\u2193 lowest",
-              markerColor: "DarkSlateGrey",
-              markerType: "cross",
-            },
-            { y: 500 },
-            { y: 480 },
-            { y: 510 },
+            { x: 10, y: 17 },
+            { x: 20, y: 15 },
+            { x: 30, y: 25 },
+            { x: 40, y: 16 },
+            { x: 50, y: 29 },
+            { x: 60, y: 16 },
+            { x: 70, y: 22 },
+            { x: 80, y: 23 },
+            { x: 90, y: 21 },
           ],
         },
       ],
@@ -248,7 +248,8 @@ function App() {
           style={{
             display: showChart ? "block" : "none",
             height: 550,
-            width: "100%",
+            width: "1500px",
+            margin: "0 auto",
             overflowX: "auto",
             paddingBottom: "2rem",
             overflowY: "hidden",
