@@ -2,5 +2,5 @@ venv/
 __pycache__/
 mit-bih-arrhythmia-database-1.0.0/
 patient_signals/
-static/uploads/
+static/uploads/**
 saved_models/
