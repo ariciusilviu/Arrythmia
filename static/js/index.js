@@ -110,23 +110,32 @@ function App() {
       .then((data) => {
         if (data.status === 200) {
           let responseResult = data.body;
-          responseResult.input = responseResult.input.slice(0, 200);
-          responseResult.prediction = responseResult.prediction.slice(0, 200);
+          responseResult.input = responseResult.input.slice(0, 10);
+          responseResult.prediction = responseResult.prediction.slice(0, 10);
           let reducedInput = [];
           let secondsPassed = 0;
           let chartData = [];
           for (let i = 0; i < responseResult.input.length; i++) {
             const element = responseResult.input[i];
-            let average = element.reduce((a, b) => a + b) / element.length;
-            reducedInput.push(average);
-            let plotData = { y: average, x: secondsPassed };
-            if (responseResult.prediction[i][0] > confidence) {
-              plotData.indexLabel = "Abnormal";
-              plotData.markerColor = "red";
-              plotData.markerType = "circle";
+            // let average = element.reduce((a, b) => a + b) / element.length;
+            // reducedInput.push(average);
+            const max = Math.max(...element);
+
+            const indexOfMax = element.indexOf(max);
+            for (let index = 0; index < element.length; index++) {
+              const t = element[index];
+              let plotData = { y: t, x: secondsPassed };
+              if (
+                responseResult.prediction[i][0] > confidence &&
+                index === indexOfMax
+              ) {
+                plotData.indexLabel = "Abnormal";
+                plotData.markerColor = "red";
+                plotData.markerType = "circle";
+              }
+              chartData.push(plotData);
+              secondsPassed += 0.3;
             }
-            chartData.push(plotData);
-            secondsPassed += 0.3;
           }
           responseResult.input = reducedInput;
           chart.options.data[0].dataPoints = chartData;
