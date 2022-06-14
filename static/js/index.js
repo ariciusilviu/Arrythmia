@@ -248,7 +248,10 @@ function App() {
           style={{
             display: showChart ? "block" : "none",
             height: 550,
-            width: 1250,
+            width: "100%",
+            overflowX: "auto",
+            paddingBottom: "2rem",
+            overflowY: "hidden",
           }}
         ></div>
       </main>
