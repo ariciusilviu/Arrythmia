@@ -1,7 +1,8 @@
 import os
-#import jsonpickle
-import numpy as np
+from pathlib import Path
+import jsonpickle
 from flask import Flask, make_response, request, jsonify, render_template
+from signal_processing import predict_signal
 from sklearn.metrics import roc_auc_score
 from tensorflow import keras
 from werkzeug.utils import secure_filename
@@ -17,45 +18,24 @@ dir = os.path.dirname(__file__)
 data_path = os.path.join(dir, 'saved_models','my_model')
 model = keras.models.load_model(data_path)
 
+def save_form_file(request, file_name):
+    file = request.files[file_name]
+    file_name_s = secure_filename(file.filename)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], file_name_s)
+    file.save(path)
+    return path
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
-@app.route('/predict',methods=['POST'])
-def predict():
-    '''
-    For rendering results on HTML GUI
-    '''
-    int_features = [int(x) for x in request.form.values()]
-    final_features = [np.array(int_features)]
-    prediction = model.predict(final_features)
-
-    output = round(prediction[0], 2)
-
-    return render_template('index.html', prediction_text='Prediction:'.format(output))
-
-
-def serialize_ndarray(obj):
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    raise TypeError ("Type %s is not serializable" % type(obj))
-
-
-
-
 @app.route('/predict_api',methods=['POST'])
 def predict_api():
-    signal = request.files['signal']
-    filename = secure_filename(signal.filename)
-    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    signal.save(path)
-    semnal = pickle.load(open('semnal.pkl', 'rb'))
-    pred = pickle.load(open('pred.pkl', 'rb'))
-    jsonPred = json.dumps(pred, default = serialize_ndarray)
-    jsonSemnal = json.dumps(semnal, default = serialize_ndarray)
-    # resp = make_response(jsonpickle.encode((x, y), unpicklable=False), 200)
-    resp = make_response(jsonPred, 200)
-    resp = make_response(jsonSemnal, 200)
+    patient_no = Path(save_form_file(request, 'signal')).stem
+    save_form_file(request, 'annotation')
+    x_sub, y_sub_preds_dense = predict_signal(patient_no)
+
+    resp = make_response(jsonpickle.encode(({'input' : x_sub.tolist()}, {'prediction' : y_sub_preds_dense.tolist()}), unpicklable=False), 200)
     return resp
 
 if __name__ == "__main__":
