@@ -11,7 +11,9 @@ function App() {
 
   const [chart, setChart] = React.useState(null);
 
-  const [confidence, setConfidence] = React.useState(0.2);
+  const [confidence, setConfidence] = React.useState(0.3);
+
+  const [resultText, setResultText] = React.useState("");
 
   let dragCounter = 0;
 
@@ -116,6 +118,7 @@ function App() {
           let reducedInput = [];
           let secondsPassed = 0;
           let chartData = [];
+          let hasArrhythmia = false;
           for (let i = 0; i < responseResult.input.length; i++) {
             let element = responseResult.input[i];
             let colorItRed = false;
@@ -140,6 +143,7 @@ function App() {
                 plotData.lineColor = "red";
                 plotData.color = "red";
                 colorItRed = true;
+                hasArrhythmia = true;
               }
               chartData.push(plotData);
               secondsPassed += 0.3;
@@ -153,6 +157,9 @@ function App() {
               }
             }
           }
+          hasArrhythmia
+            ? setResultText("Arrhythmia was detected on patient.")
+            : setResultText("No arrhythmia was detected.");
           responseResult.input = reducedInput;
           chart.options.data[0].dataPoints = chartData;
           chart.render();
@@ -233,7 +240,7 @@ function App() {
             max="1"
             onChange={handleInput}
             step="0.01"
-            defaultValue="0.2"
+            defaultValue="0.3"
           />
         </div>
 
@@ -254,13 +261,23 @@ function App() {
           style={{
             display: showChart ? "block" : "none",
             height: 550,
-            width: "1500px",
+            width: "100%",
+            maxWidth: "1500px",
             margin: "0 auto",
             overflowX: "auto",
             paddingBottom: "2rem",
             overflowY: "hidden",
           }}
         ></div>
+        <div
+          className="result-text"
+          style={{
+            color:
+              resultText.indexOf("No") > -1 ? "var(--accent)" : "var(--red)",
+          }}
+        >
+          {resultText}
+        </div>
       </main>
     </div>
   );
